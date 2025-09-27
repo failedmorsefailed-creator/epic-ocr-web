@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Epic OCR Web App</title>
+</head>
+<body>
+  <h1>Upload an Image to Extract Text</h1>
+  <form action="/ocr" method="post" enctype="multipart/form-data">
+    <input type="file" name="image" accept="image/*" required>
+    <button type="submit">Extract Text</button>
+  </form>
+</body>
+</html>
