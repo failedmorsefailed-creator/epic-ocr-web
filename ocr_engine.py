@@ -1,124 +1,92 @@
 import cv2
 import numpy as np
 import pytesseract
-from pdf2image import convert_from_path
 import pandas as pd
+from pdf2image import convert_from_path
 from io import BytesIO
 from PIL import Image
 
-# Config: tweak these for your documents
-MIN_CELL_WIDTH = 30
-MIN_CELL_HEIGHT = 15
-ROW_TOLERANCE = 12
-
 def load_pages(path):
-    """Return list of OpenCV BGR images for an image or a PDF."""
-    if path.lower().endswith('.pdf'):
-        pil_pages = convert_from_path(path)
-        images = [cv2.cvtColor(np.array(p), cv2.COLOR_RGB2BGR) for p in pil_pages]
+    if path.lower().endswith(".pdf"):
+        pil_pages = convert_from_path(path, dpi=300)
+        return [cv2.cvtColor(np.array(p), cv2.COLOR_RGB2BGR) for p in pil_pages]
     else:
-        img = cv2.imread(path)
-        images = [img]
-    return images
+        return [cv2.imread(path)]
 
-def preprocess_for_table(img):
+def preprocess(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    gray = cv2.bilateralFilter(gray, 9, 75, 75)
-    thresh = cv2.adaptiveThreshold(
-        gray, 255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY_INV, 15, 8
-    )
-    return thresh
+    gray = cv2.adaptiveThreshold(~gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 15, -2)
+    return gray
 
-def detect_table_cells(thresh):
-    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
-    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 40))
+def detect_lines(binary):
+    rows, cols = binary.shape
 
-    detect_horizontal = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
-    detect_vertical = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
+    # horizontal
+    horizontal_size = cols // 30
+    horizontal_structure = cv2.getStructuringElement(cv2.MORPH_RECT, (horizontal_size, 1))
+    horizontal = cv2.erode(binary, horizontal_structure)
+    horizontal = cv2.dilate(horizontal, horizontal_structure)
 
-    mask = cv2.add(detect_horizontal, detect_vertical)
+    # vertical
+    vertical_size = rows // 30
+    vertical_structure = cv2.getStructuringElement(cv2.MORPH_RECT, (1, vertical_size))
+    vertical = cv2.erode(binary, vertical_structure)
+    vertical = cv2.dilate(vertical, vertical_structure)
 
+    mask = horizontal + vertical
+    return mask
+
+def extract_cells(img, mask):
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    boxes = []
-    for cnt in contours:
-        x, y, w, h = cv2.boundingRect(cnt)
-        if w > MIN_CELL_WIDTH and h > MIN_CELL_HEIGHT:
-            boxes.append((x, y, w, h))
+    boxes = [cv2.boundingRect(c) for c in contours]
 
+    # filter out tiny boxes
+    boxes = [(x, y, w, h) for x, y, w, h in boxes if w > 40 and h > 20]
+
+    # sort by row then col
     boxes = sorted(boxes, key=lambda b: (b[1], b[0]))
     return boxes
 
-def group_boxes_to_rows(boxes):
+def group_into_grid(boxes, row_tol=15):
     rows = []
     current_row = []
-    current_y = -999
-    for (x, y, w, h) in boxes:
-        if current_y == -999:
-            current_y = y
-        if abs(y - current_y) > ROW_TOLERANCE:
-            rows.append(sorted(current_row, key=lambda b: b[0]))
-            current_row = []
-            current_y = y
-        current_row.append((x, y, w, h))
+    last_y = -999
+    for b in boxes:
+        x, y, w, h = b
+        if abs(y - last_y) > row_tol:
+            if current_row:
+                rows.append(sorted(current_row, key=lambda bb: bb[0]))
+            current_row = [b]
+            last_y = y
+        else:
+            current_row.append(b)
     if current_row:
-        rows.append(sorted(current_row, key=lambda b: b[0]))
+        rows.append(sorted(current_row, key=lambda bb: bb[0]))
     return rows
 
-def ocr_cell(image, box):
+def ocr_cell(img, box):
     x, y, w, h = box
-    pad = 3
-    h_img, w_img = image.shape[:2]
-    x1 = max(0, x - pad)
-    y1 = max(0, y - pad)
-    x2 = min(w_img, x + w + pad)
-    y2 = min(h_img, y + h + pad)
-    cell = image[y1:y2, x1:x2]
-    cell_pil = Image.fromarray(cv2.cvtColor(cell, cv2.COLOR_BGR2RGB))
-    text = pytesseract.image_to_string(cell_pil, config='--psm 6 --oem 3')
-    return text.strip()
+    crop = img[y:y+h, x:x+w]
+    pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+    text = pytesseract.image_to_string(pil, config="--psm 6").strip()
+    return text
 
-def rows_to_dataframe(rows, image):
+def process_image_page(path):
+    img = load_pages(path)[0]
+    binary = preprocess(img)
+    mask = detect_lines(binary)
+    boxes = extract_cells(img, mask)
+    rows = group_into_grid(boxes)
+
     data = []
-    max_cols = 0
     for r in rows:
-        row_texts = [ocr_cell(image, box) for box in r]
-        data.append(row_texts)
-        max_cols = max(max_cols, len(row_texts))
-    for i in range(len(data)):
-        if len(data[i]) < max_cols:
-            data[i].extend([''] * (max_cols - len(data[i])))
+        data.append([ocr_cell(img, b) for b in r])
+
     return pd.DataFrame(data)
-
-def process_image_page(path_or_img):
-    if isinstance(path_or_img, str):
-        images = load_pages(path_or_img)
-    else:
-        images = [path_or_img]
-
-    all_frames = []
-    for img in images:
-        thresh = preprocess_for_table(img)
-        boxes = detect_table_cells(thresh)
-        if not boxes:
-            pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-            text = pytesseract.image_to_string(pil, config='--psm 4')
-            lines = [l for l in text.splitlines() if l.strip()]
-            df = pd.DataFrame([l.split() for l in lines])
-        else:
-            rows = group_boxes_to_rows(boxes)
-            df = rows_to_dataframe(rows, img)
-        all_frames.append(df)
-
-    if len(all_frames) == 1:
-        return all_frames[0]
-    else:
-        return pd.concat(all_frames, ignore_index=True)
 
 def process_file_to_excel(path):
     df = process_image_page(path)
-    out = BytesIO()
-    df.to_excel(out, index=False, header=False)
-    out.seek(0)
-    return out
+    buf = BytesIO()
+    df.to_excel(buf, index=False, header=False)
+    buf.seek(0)
+    return buf
