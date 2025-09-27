@@ -1,3 +1,5 @@
-Flask==2.3.2
-pytesseract==0.3.10
-Pillow==9.5.0
+Flask
+pytesseract
+Pillow
+pandas
+openpyxl
