@@ -1,12 +1,22 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-RUN apt-get update && \
-    apt-get install -y tesseract-ocr poppler-utils libglib2.0-0 libsm6 libxrender1 libxext6 && \
-    rm -rf /var/lib/apt/lists/*
+# Install system deps for Tesseract + poppler (for PDFs)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    libtesseract-dev \
+    libleptonica-dev \
+    poppler-utils \
+    pkg-config \
+    build-essential \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY . /app
 
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "app.py"]
+COPY . /app
+
+EXPOSE 5000
+
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "2"]
