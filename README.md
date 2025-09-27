@@ -1,11 +1,12 @@
-# EPIC OCR Web
+# OCR to Excel - Flask app (Deployable to Render)
 
-Upload a scanned PDF or image of a voter list and get an Excel with SerialNo, EPIC, Handwritten Letter/Numbers, Relation.
+This repo provides a small Flask app that:
+- Accepts an uploaded image or PDF.
+- Uses OpenCV + pytesseract to detect tables and extract cell text.
+- Exports results to Excel.
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/YOURUSERNAME/epic-ocr-web)
-
-Run locally:
+## Run locally (with Docker)
 
 ```bash
-pip install -r requirements.txt
-python app.py
+docker build -t ocr-to-excel .
+docker run --rm -p 5000:5000 -v /mnt/data:/mnt/data ocr-to-excel
