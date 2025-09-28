@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  ocrapp:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    environment:
+      - TESSERACT_CMD=/usr/bin/tesseract
