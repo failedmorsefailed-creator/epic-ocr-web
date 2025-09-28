@@ -1,14 +1,10 @@
-# OCR Web App (Tesseract + Google Cloud Vision)
+# EPIC OCR Web
 
-A web app to extract text (English + Odia) from election roll images using:
-- Google Cloud Vision API
-- Tesseract OCR (fallback)
+Flask app to extract electoral roll data from images using:
+- Google Cloud Vision API (preferred)
+- pytesseract (fallback)
 
----
-
-## 🚀 Setup
-
-### 1. Clone Repo
+## Run Locally
 ```bash
-git clone https://github.com/your-username/ocr-app.git
-cd ocr-app
+pip install -r requirements.txt
+python app.py
