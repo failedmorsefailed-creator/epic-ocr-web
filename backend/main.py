@@ -1,13 +1,13 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 import pytesseract
-from pdf2image import convert_from_bytes
 from PIL import Image
 import io
 
 app = FastAPI()
 
+# Allow your frontend to call backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,27 +16,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def home():
-    return {"status": "OCR backend running"}
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    # This just displays a friendly message or you can serve your frontend file
+    return """
+    <h1>Odia-English OCR API</h1>
+    <p>Use POST /ocr with form field 'file' to extract text.</p>
+    """
 
 @app.post("/ocr")
-async def ocr_endpoint(file: UploadFile = File(...)):
-    content = await file.read()
-    filename = (file.filename or "upload").lower()
+async def ocr(file: UploadFile = File(...)):
+    # Read uploaded file
+    contents = await file.read()
 
-    # PDF → images or direct image
-    images = []
-    if filename.endswith(".pdf"):
-        images = convert_from_bytes(content)
-    else:
-        images = [Image.open(io.BytesIO(content))]
+    # Open as image
+    image = Image.open(io.BytesIO(contents))
 
-    text_results = []
-    for img in images:
-        if img.mode != "RGB":
-            img = img.convert("RGB")
-        text = pytesseract.image_to_string(img, lang="eng+ori")
-        text_results.append(text)
+    # Perform OCR (English + Odia)
+    text = pytesseract.image_to_string(image, lang="eng+ori")
 
-    return JSONResponse({"text": "\n".join(text_results)})
+    return {"filename": file.filename, "text": text}
