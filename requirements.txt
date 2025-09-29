@@ -1,6 +1,11 @@
-Flask==2.3.2
-pandas==2.1.0
-openpyxl==3.1.2
-pytesseract==0.3.10
-Pillow==10.0.0
-google-cloud-vision==3.4.5
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+pytesseract
+opencv-python-headless
+ocrmypdf
+pdftotext
+pdfminer.six
+pandas
+openpyxl
