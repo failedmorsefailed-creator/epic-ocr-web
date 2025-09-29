@@ -5,7 +5,6 @@ import pytesseract
 from pdf2image import convert_from_bytes
 from PIL import Image
 import io
-import os
 
 app = FastAPI()
 
@@ -17,7 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/ocr")
+@app.get("/")
+def home():
+    return {"status": "OCR backend running"}
+
+@app.post("/ocr")  # or "/api/ocr" if you prefer
 async def ocr_endpoint(file: UploadFile = File(...)):
     content = await file.read()
     filename = file.filename.lower()
