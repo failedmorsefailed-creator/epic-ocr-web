@@ -1,18 +1,10 @@
 # Odia-English OCR Web App
 
+Simple OCR app (FastAPI backend + static frontend) that accepts image/pdf and extracts text using Tesseract (eng + ori).
 
-This repository contains a FastAPI backend and a React frontend for capturing photos or uploading PDFs/images and extracting text (English + Odia) with Tesseract OCR.
+## Backend
+- Endpoint: POST /ocr (file form field name: file)
+- Health: GET /
 
-
-## Deployment
-
-
-1. Push this repo to GitHub.
-2. Create a new web service in Render, connect this repo.
-3. Render will detect render.yaml and deploy backend and frontend.
-
-
-## Local Dev
-
-
-- Backend:
+## Deploy
+- Use Render, Docker, or run locally with Python.
