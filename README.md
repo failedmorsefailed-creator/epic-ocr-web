@@ -1,10 +1,18 @@
-# EPIC OCR Web
+# Odia-English OCR Web App
 
-Flask app to extract electoral roll data from images using:
-- Google Cloud Vision API (preferred)
-- pytesseract (fallback)
 
-## Run Locally
-```bash
-pip install -r requirements.txt
-python app.py
+This repository contains a FastAPI backend and a React frontend for capturing photos or uploading PDFs/images and extracting text (English + Odia) with Tesseract OCR.
+
+
+## Deployment
+
+
+1. Push this repo to GitHub.
+2. Create a new web service in Render, connect this repo.
+3. Render will detect render.yaml and deploy backend and frontend.
+
+
+## Local Dev
+
+
+- Backend:
