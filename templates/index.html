@@ -1,50 +1,23 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>EPIC OCR Upload</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Odia-English OCR</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="p-4">
-  <div class="container">
-    <h1 class="mb-3">EPIC OCR — Upload PDF / Image</h1>
+<body>
+  <h1>Odia-English OCR Web App</h1>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for cat, msg in messages %}
-          <div class="alert alert-{{ 'warning' if cat=='warning' else 'danger' if cat=='danger' else 'success' }}">{{ msg }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+  <input type="file" id="fileInput" accept="image/*,application/pdf">
+  <button onclick="sendFile()">Upload & OCR</button>
 
-    <form method="post" enctype="multipart/form-data">
-      <div class="mb-3">
-        <label class="form-label">File (PDF / JPG / PNG)</label>
-        <input type="file" name="file" class="form-control" required>
-      </div>
+  <video id="camera" autoplay playsinline></video>
+  <button onclick="snapPhoto()">Snap Photo</button>
 
-      <div class="row mb-3">
-        <div class="col">
-          <label class="form-label">AC_NO</label>
-          <input type="text" name="ac_no" class="form-control" value="33">
-        </div>
-        <div class="col">
-          <label class="form-label">PART_NO</label>
-          <input type="text" name="part_no" class="form-control" value="153">
-        </div>
-        <div class="col">
-          <label class="form-label">Booth Name (for filename)</label>
-          <input type="text" name="booth" class="form-control" placeholder="BOOTH 153 33 Baripada ST">
-        </div>
-      </div>
+  <h2>Result</h2>
+  <textarea id="result" rows="15" cols="80"></textarea>
+  <button onclick="downloadText()">Download</button>
 
-      <button class="btn btn-primary">Upload & Extract</button>
-    </form>
-
-    <hr>
-    <p class="text-muted small">
-      Notes: This uses Google Drive's OCR (converting uploaded file to a Google Doc). If results are messy, try a clearer scan or consider Google Vision API / Document AI for better accuracy on Odia / handwriting.
-    </p>
-  </div>
+  <script src="app.js"></script>
 </body>
 </html>
