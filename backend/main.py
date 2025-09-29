@@ -1,13 +1,15 @@
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pytesseract
 from PIL import Image
 import io
+import os
 
 app = FastAPI()
 
-# Allow your frontend to call backend
+# Allow all origins (or specify your frontend URL)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,23 +18,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount frontend static files
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 @app.get("/", response_class=HTMLResponse)
-async def home():
-    # This just displays a friendly message or you can serve your frontend file
-    return """
-    <h1>Odia-English OCR API</h1>
-    <p>Use POST /ocr with form field 'file' to extract text.</p>
-    """
+async def serve_frontend():
+    # Serve your index.html from frontend folder
+    return FileResponse(os.path.join("frontend", "index.html"))
 
 @app.post("/ocr")
 async def ocr(file: UploadFile = File(...)):
-    # Read uploaded file
     contents = await file.read()
-
-    # Open as image
     image = Image.open(io.BytesIO(contents))
-
-    # Perform OCR (English + Odia)
     text = pytesseract.image_to_string(image, lang="eng+ori")
-
     return {"filename": file.filename, "text": text}
