@@ -1,12 +1,7 @@
 services:
   - type: web
-    name: ocr-backend
-    env: docker
-    dockerfilePath: ./backend/Dockerfile
+    name: epic-ocr-web
+    env: python
     plan: free
-  - type: static_site
-    name: ocr-frontend
-    env: static
-    buildCommand: "echo 'static site - no build'"
-    staticPublishPath: frontend
-    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
