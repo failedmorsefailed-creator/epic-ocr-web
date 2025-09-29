@@ -1,8 +1,12 @@
 services:
-  - type: web
-    name: ocr-to-excel
-    env: docker
-    branch: main
-    plan: free
-    buildCommand: ''
-    startCommand: ''
+- type: web
+name: ocr-backend
+env: docker
+dockerfilePath: ./backend/Dockerfile
+plan: free
+- type: static_site
+name: ocr-frontend
+env: static
+buildCommand: "npm install && npm run build"
+staticPublishPath: frontend/dist
+plan: free
