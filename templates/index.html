@@ -1,83 +1,50 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>EPIC OCR - Upload</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
-  </head>
-  <body class="p-4">
-    <div class="container">
-      <h3>EPIC OCR — Upload PDF / Image</h3>
-      <p>Upload a scanned voter list (PDF or image). The server will run OpenCV bounding-box detection + Tesseract OCR and show results below.</p>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>EPIC OCR Upload</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+  <div class="container">
+    <h1 class="mb-3">EPIC OCR — Upload PDF / Image</h1>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ 'warning' if cat=='warning' else 'danger' if cat=='danger' else 'success' }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" enctype="multipart/form-data">
       <div class="mb-3">
-        <input class="form-control" type="file" id="fileInput">
-      </div>
-      <div class="mb-3">
-        <label><input type="checkbox" id="debugChk"> Save debug images (blocks)</label><br>
-        <button id="uploadBtn" class="btn btn-primary">Upload & Extract</button>
-        <a id="downloadLink" class="btn btn-success d-none" target="_blank">Download Excel</a>
+        <label class="form-label">File (PDF / JPG / PNG)</label>
+        <input type="file" name="file" class="form-control" required>
       </div>
 
-      <div id="spinner" class="d-none alert alert-info">Processing... Please wait.</div>
+      <div class="row mb-3">
+        <div class="col">
+          <label class="form-label">AC_NO</label>
+          <input type="text" name="ac_no" class="form-control" value="33">
+        </div>
+        <div class="col">
+          <label class="form-label">PART_NO</label>
+          <input type="text" name="part_no" class="form-control" value="153">
+        </div>
+        <div class="col">
+          <label class="form-label">Booth Name (for filename)</label>
+          <input type="text" name="booth" class="form-control" placeholder="BOOTH 153 33 Baripada ST">
+        </div>
+      </div>
 
-      <table id="resultTable" class="display" style="width:100%">
-        <thead>
-          <tr>
-            <th>Page</th><th>Block</th><th>EPIC_NO</th><th>AC_NO</th><th>PART_NO</th>
-            <th>SERIAL_NO_IN_PART</th><th>Category</th><th>Handwritten Letter</th>
-            <th>First No</th><th>Last No</th><th>Relation</th><th>RawText</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <button class="btn btn-primary">Upload & Extract</button>
+    </form>
 
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script>
-      $(document).ready(function(){
-        var table = $('#resultTable').DataTable({scrollX:true,pageLength:20});
-
-        $('#uploadBtn').click(function(){
-          var f = $('#fileInput')[0].files[0];
-          if(!f){ alert('Please pick a file.'); return; }
-          var fd = new FormData();
-          fd.append('file', f);
-          fd.append('debug', $('#debugChk').is(':checked') ? '1' : '0');
-
-          $('#spinner').removeClass('d-none');
-          $('#uploadBtn').prop('disabled', true);
-
-          $.ajax({
-            url:'/upload',
-            method:'POST',
-            data: fd,
-            processData: false,
-            contentType: false,
-            success: function(resp){
-              $('#spinner').addClass('d-none');
-              $('#uploadBtn').prop('disabled', false);
-              table.clear();
-              resp.rows.forEach(function(r){
-                table.row.add([r.Page, r.BlockIndex, r.EPIC_NO, r.AC_NO, r.PART_NO, r.SERIAL_NO_IN_PART, r["Category_A/B"], r.Handwritten_Letter, r.Handwritten_First_Number, r.Handwritten_Last_Number, r.Relation, r.RawText]);
-              });
-              table.draw();
-              if(resp.download){
-                $('#downloadLink').attr('href', resp.download).removeClass('d-none').text('Download Excel');
-              }
-            },
-            error:function(e){
-              $('#spinner').addClass('d-none');
-              $('#uploadBtn').prop('disabled', false);
-              alert('Error: ' + (e.responseJSON ? e.responseJSON.error : 'Server error'));
-            }
-          });
-
-        });
-      });
-    </script>
-  </body>
+    <hr>
+    <p class="text-muted small">
+      Notes: This uses Google Drive's OCR (converting uploaded file to a Google Doc). If results are messy, try a clearer scan or consider Google Vision API / Document AI for better accuracy on Odia / handwriting.
+    </p>
+  </div>
+</body>
 </html>
